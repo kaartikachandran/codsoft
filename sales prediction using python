@@ -1,0 +1,155 @@
+•	pandas: for data manipulation
+•	numpy: for numerical operations
+•	matplotlib and seaborn: for data visualization
+•	scikit-learn: for machine learning algorithms
+•	xgboost (optional): for gradient boosting, which is a more advanced machine learning model
+pip install pandas numpy matplotlib seaborn scikit-learn xgboost
+•	date: Date of the sale
+•	product_id: Unique identifier for the product
+•	sales: Number of units sold
+•	promotion: Whether there was a promotion (binary: 1 if promotion, 0 if no promotion)
+•	store_id: Unique store identifier
+•	holiday: Whether the day is a holiday (binary: 1 if holiday, 0 if not)
+•	temperature: Temperature (optional, as an external factor)
+import pandas as pd
+
+# Load the dataset
+data = pd.read_csv('sales_data.csv', parse_dates=['date'])
+
+# Check the first few rows of the dataset
+print(data.head())
+
+# Check for missing values and basic statistics
+print(data.isnull().sum())
+print(data.describe())
+# Extract date-related features
+data['year'] = data['date'].dt.year
+data['month'] = data['date'].dt.month
+data['day'] = data['date'].dt.day
+data['weekday'] = data['date'].dt.weekday
+data['is_weekend'] = data['weekday'].apply(lambda x: 1 if x >= 5 else 0)
+
+# Drop the original date column (optional)
+data = data.drop(columns=['date'])
+
+# Check the updated data
+print(data.head())
+# Fill missing values with the mean or median for numerical columns
+data['temperature'] = data['temperature'].fillna(data['temperature'].mean())
+
+# Fill missing values for categorical columns (if any)
+data['promotion'] = data['promotion'].fillna(0)
+
+# Alternatively, drop rows with missing target variable (sales)
+data = data.dropna(subset=['sales'])
+
+# Check if any missing data remains
+print(data.isnull().sum())
+# Create a lag feature: sales from the previous day
+data['prev_sales'] = data['sales'].shift(1)
+
+# Create a rolling average (7 days window) of sales
+data['rolling_avg_sales'] = data['sales'].rolling(window=7).mean()
+
+# Drop the first row because it will have NaN values for lag/rolling features
+data = data.dropna()
+
+print(data.head())
+from sklearn.model_selection import train_test_split
+
+# Define your features (X) and target variable (y)
+X = data.drop(columns=['sales'])
+y = data['sales']
+
+# Split the data into training and testing sets (80-20 split)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+print(f"Training set size: {X_train.shape[0]}")
+print(f"Testing set size: {X_test.shape[0]}")
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+# Initialize the model
+lr_model = LinearRegression()
+
+# Train the model
+lr_model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = lr_model.predict(X_test)
+
+# Evaluate the model
+mae = mean_absolute_error(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+r2 = r2_score(y_test, y_pred)
+
+print(f"MAE: {mae:.2f}")
+print(f"MSE: {mse:.2f}")
+print(f"RMSE: {rmse:.2f}")
+print(f"R2: {r2:.2f}")
+from sklearn.tree import DecisionTreeRegressor
+
+# Initialize the model
+dt_model = DecisionTreeRegressor(random_state=42)
+
+# Train the model
+dt_model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred_dt = dt_model.predict(X_test)
+
+# Evaluate the model
+mae_dt = mean_absolute_error(y_test, y_pred_dt)
+mse_dt = mean_squared_error(y_test, y_pred_dt)
+rmse_dt = mean_squared_error(y_test, y_pred_dt, squared=False)
+r2_dt = r2_score(y_test, y_pred_dt)
+
+print(f"MAE (Decision Tree): {mae_dt:.2f}")
+print(f"MSE (Decision Tree): {mse_dt:.2f}")
+print(f"RMSE (Decision Tree): {rmse_dt:.2f}")
+print(f"R2 (Decision Tree): {r2_dt:.2f}")
+from sklearn.ensemble import RandomForestRegressor
+
+# Initialize the model
+rf_model = RandomForestRegressor(random_state=42)
+
+# Train the model
+rf_model.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred_rf = rf_model.predict(X_test)
+
+# Evaluate the model
+mae_rf = mean_absolute_error(y_test, y_pred_rf)
+mse_rf = mean_squared_error(y_test, y_pred_rf)
+rmse_rf = mean_squared_error(y_test, y_pred_rf, squared=False)
+r2_rf = r2_score(y_test, y_pred_rf)
+
+print(f"MAE (Random Forest): {mae_rf:.2f}")
+print(f"MSE (Random Forest): {mse_rf:.2f}")
+print(f"RMSE (Random Forest): {rmse_rf:.2f}")
+print(f"R2 (Random Forest): {r2_rf:.2f}")
+from sklearn.model_selection import GridSearchCV
+
+# Define the parameter grid for Random Forest
+param_grid = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [5, 10, 20],
+    'min_samples_split': [2, 5, 10]
+}
+
+# Initialize the GridSearchCV
+grid_search = GridSearchCV(RandomForestRegressor(random_state=42), param_grid, cv=5, scoring='neg_mean_squared_error')
+
+# Fit the grid search
+grid_search.fit(X_train, y_train)
+
+# Print the best parameters and the corresponding score
+print(f"Best parameters: {grid_search.best_params_}")
+print(f"Best score: {grid_search.best_score_}")
+import joblib
+
+# Save the trained RandomForest model
+joblib.dump(rf_model, 'sales_prediction_model.pkl')
+
